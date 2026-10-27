@@ -1,0 +1,1 @@
+﻿"""stream-sentinel source package."""
