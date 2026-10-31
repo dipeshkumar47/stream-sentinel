@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import random
 import sys
 import time
@@ -200,7 +200,7 @@ def generate_mock_log(
     )
 
 
-def send_log(
+# Kafka partition key = service_name ensures per-service chronological ordering.`ndef send_log(
     log_entry: SystemLog,
     producer: Producer | None = None,
     topic: str = KAFKA_TOPIC_SYSTEM_LOGS,
