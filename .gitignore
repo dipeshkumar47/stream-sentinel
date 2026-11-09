@@ -30,11 +30,16 @@ ENV/
 .pytest_cache/
 htmlcov/
 
-# Data & models
+# Data & models (never commit local vector store or model weights)
 data/
 *.db
 *.sqlite
 *.sqlite3
+.chroma/
+
+# HuggingFace / SentenceTransformer cache
+models/
+.cache/huggingface/
 
 # Logs
 *.log
