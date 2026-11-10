@@ -1,0 +1,121 @@
+﻿"""LangChain tools available to the ReAct agent."""
+
+from __future__ import annotations
+
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+from langchain_core.tools import tool
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from embeddings import HuggingFaceEmbedder
+from vector_store import get_collection, query_similar
+
+_embedder = HuggingFaceEmbedder()
+
+
+@tool
+def vector_search(query: str, k: int = 5) -> str:
+    """Search the vector store for log entries semantically similar to query.
+
+    Use this for questions about specific errors, root-cause analysis, or
+    any query that benefits from finding contextually similar past log events.
+
+    Args:
+        query: Natural-language description of what you are looking for.
+        k:     Maximum number of results to return (default 5).
+    """
+    embedding = _embedder.embed(query)
+    results = query_similar(embedding, k=k)
+
+    documents: list[str] = results.get("documents", [[]])[0]
+    metadatas: list[dict] = results.get("metadatas", [[]])[0]
+
+    if not documents:
+        return "No similar log entries found in the vector store."
+
+    lines: list[str] = []
+    for idx, (doc, meta) in enumerate(zip(documents, metadatas, strict=False)):
+        i = idx + 1
+        service = meta.get("service_name", "unknown")
+        level = meta.get("log_level", "?")
+        ts = meta.get("timestamp", "?")
+        header = f"[{i}] {level} | {service} @ {ts}"
+        doc_preview = doc[:400] + "..." if len(doc) > 400 else doc
+        lines.append(f"{header}\n{doc_preview}")
+
+    return "\n\n".join(lines)
+
+
+@tool
+def log_stats(
+    log_level: str | None = None,
+    service_name: str | None = None,
+    minutes: int = 60,
+) -> str:
+    """Return live counts and distributions of log entries stored in ChromaDB.
+
+    Use this for questions about trends, frequencies, or distributions.
+
+    Args:
+        log_level:    Filter by log level (INFO, WARN, ERROR). None = all.
+        service_name: Filter by service name. None = all services.
+        minutes:      Look-back window in minutes from now (default 60).
+    """
+    collection = get_collection()
+
+    where_clause: dict = {}
+    if log_level and service_name:
+        where_clause = {"$and": [
+            {"log_level": {"$eq": log_level.upper()}},
+            {"service_name": {"$eq": service_name}},
+        ]}
+    elif log_level:
+        where_clause = {"log_level": {"$eq": log_level.upper()}}
+    elif service_name:
+        where_clause = {"service_name": {"$eq": service_name}}
+
+    get_kwargs: dict = {"include": ["metadatas"]}
+    if where_clause:
+        get_kwargs["where"] = where_clause
+
+    result = collection.get(**get_kwargs)
+    metadatas: list[dict] = result.get("metadatas") or []
+
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+    filtered = []
+    for meta in metadatas:
+        ts_str = meta.get("timestamp", "")
+        try:
+            ts = datetime.fromisoformat(ts_str)
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            if ts >= cutoff:
+                filtered.append(meta)
+        except ValueError:
+            pass
+
+    if not filtered:
+        return f"No log entries found in the last {minutes} minute(s)."
+
+    level_counts: dict[str, int] = {}
+    service_counts: dict[str, int] = {}
+    for meta in filtered:
+        lvl = meta.get("log_level", "UNKNOWN")
+        svc = meta.get("service_name", "unknown")
+        level_counts[lvl] = level_counts.get(lvl, 0) + 1
+        service_counts[svc] = service_counts.get(svc, 0) + 1
+
+    level_breakdown = ", ".join(f"{l}: {c}" for l, c in sorted(level_counts.items()))
+    service_breakdown = "\n".join(
+        f"  {s}: {c}" for s, c in sorted(service_counts.items(), key=lambda x: -x[1])
+    )
+
+    return (
+        f"Log statistics for the last {minutes} minute(s):\n"
+        f"  Total entries: {len(filtered)}\n"
+        f"  By level: {level_breakdown}\n"
+        f"  By service:\n{service_breakdown}"
+    )
