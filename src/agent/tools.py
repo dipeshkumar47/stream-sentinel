@@ -1,4 +1,4 @@
-﻿"""LangChain tools available to the ReAct agent."""
+"""LangChain tools available to the ReAct agent."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 
 from langchain_core.tools import tool
 
+# Allow imports from the sibling src/ modules when running from the repo root.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from embeddings import HuggingFaceEmbedder
@@ -18,20 +19,26 @@ _embedder = HuggingFaceEmbedder()
 
 @tool
 def vector_search(query: str, k: int = 5) -> str:
-    """Search the vector store for log entries semantically similar to query.
+    """Search the vector store for log entries semantically similar to *query*.
 
-    Use this for questions about specific errors, root-cause analysis, or
+    Use this tool for questions about specific errors, root-cause analysis, or
     any query that benefits from finding contextually similar past log events.
 
     Args:
         query: Natural-language description of what you are looking for.
         k:     Maximum number of results to return (default 5).
+
+    Returns:
+        A formatted list of the most relevant log entries with their metadata,
+        or a message indicating that no results were found.
     """
     embedding = _embedder.embed(query)
     results = query_similar(embedding, k=k)
 
     documents: list[str] = results.get("documents", [[]])[0]
     metadatas: list[dict] = results.get("metadatas", [[]])[0]
+    ids_list: list[str] = (results.get("ids") or [[]])[0]
+    distances_list: list[float] = (results.get("distances") or [[]])[0]
 
     if not documents:
         return "No similar log entries found in the vector store."
@@ -42,7 +49,16 @@ def vector_search(query: str, k: int = 5) -> str:
         service = meta.get("service_name", "unknown")
         level = meta.get("log_level", "?")
         ts = meta.get("timestamp", "?")
+        event_id = meta.get("event_id") or (ids_list[idx] if idx < len(ids_list) else None)
+        raw_dist = distances_list[idx] if idx < len(distances_list) else None
+        score = round(1.0 / (1.0 + max(0.0, float(raw_dist))), 3) if raw_dist is not None else None
+
         header = f"[{i}] {level} | {service} @ {ts}"
+        if event_id:
+            header += f" | event_id={event_id}"
+        if score is not None:
+            header += f" | score={score:.3f}"
+
         doc_preview = doc[:400] + "..." if len(doc) > 400 else doc
         lines.append(f"{header}\n{doc_preview}")
 
@@ -57,21 +73,30 @@ def log_stats(
 ) -> str:
     """Return live counts and distributions of log entries stored in ChromaDB.
 
-    Use this for questions about trends, frequencies, or distributions.
+    Use this tool for questions about trends, frequencies, or distributions —
+    e.g. "how many errors in the last hour?" or "which services are logging the most?".
 
     Args:
-        log_level:    Filter by log level (INFO, WARN, ERROR). None = all.
-        service_name: Filter by service name. None = all services.
+        log_level:    Filter by log level ("INFO", "WARN", "ERROR").
+                      Pass None to include all levels.
+        service_name: Filter by a specific service name.
+                      Pass None to include all services.
         minutes:      Look-back window in minutes from now (default 60).
+
+    Returns:
+        A summary showing total count, breakdown by log level, and breakdown
+        by service within the requested time window.
     """
     collection = get_collection()
 
     where_clause: dict = {}
     if log_level and service_name:
-        where_clause = {"$and": [
-            {"log_level": {"$eq": log_level.upper()}},
-            {"service_name": {"$eq": service_name}},
-        ]}
+        where_clause = {
+            "$and": [
+                {"log_level": {"$eq": log_level.upper()}},
+                {"service_name": {"$eq": service_name}},
+            ]
+        }
     elif log_level:
         where_clause = {"log_level": {"$eq": log_level.upper()}}
     elif service_name:
@@ -85,7 +110,8 @@ def log_stats(
     metadatas: list[dict] = result.get("metadatas") or []
 
     cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
-    filtered = []
+
+    filtered: list[dict] = []
     for meta in metadatas:
         ts_str = meta.get("timestamp", "")
         try:
@@ -98,7 +124,12 @@ def log_stats(
             pass
 
     if not filtered:
-        return f"No log entries found in the last {minutes} minute(s)."
+        return (
+            f"No log entries found in the last {minutes} minute(s)"
+            + (f" for level={log_level}" if log_level else "")
+            + (f", service={service_name}" if service_name else "")
+            + "."
+        )
 
     level_counts: dict[str, int] = {}
     service_counts: dict[str, int] = {}
@@ -108,9 +139,9 @@ def log_stats(
         level_counts[lvl] = level_counts.get(lvl, 0) + 1
         service_counts[svc] = service_counts.get(svc, 0) + 1
 
-    level_breakdown = ", ".join(f"{l}: {c}" for l, c in sorted(level_counts.items()))
+    level_breakdown = ", ".join(f"{lvl}: {cnt}" for lvl, cnt in sorted(level_counts.items()))
     service_breakdown = "\n".join(
-        f"  {s}: {c}" for s, c in sorted(service_counts.items(), key=lambda x: -x[1])
+        f"  {svc}: {cnt}" for svc, cnt in sorted(service_counts.items(), key=lambda x: -x[1])
     )
 
     return (
