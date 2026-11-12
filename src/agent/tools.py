@@ -1,4 +1,4 @@
-"""LangChain tools available to the ReAct agent."""
+﻿"""LangChain tools available to the ReAct agent."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def vector_search(query: str, k: int = 5) -> str:
     documents: list[str] = results.get("documents", [[]])[0]
     metadatas: list[dict] = results.get("metadatas", [[]])[0]
     ids_list: list[str] = (results.get("ids") or [[]])[0]
-    distances_list: list[float] = (results.get("distances") or [[]])[0]
+    # ChromaDB returns None for distances when the collection is empty`n    distances_list: list[float] = (results.get("distances") or [[]])[0]
 
     if not documents:
         return "No similar log entries found in the vector store."
@@ -73,7 +73,7 @@ def log_stats(
 ) -> str:
     """Return live counts and distributions of log entries stored in ChromaDB.
 
-    Use this tool for questions about trends, frequencies, or distributions —
+    Use this tool for questions about trends, frequencies, or distributions â€”
     e.g. "how many errors in the last hour?" or "which services are logging the most?".
 
     Args:
