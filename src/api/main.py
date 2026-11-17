@@ -1,4 +1,4 @@
-"""FastAPI application entry point.
+﻿"""FastAPI application entry point.
 
 Run with:
     uvicorn api.main:app --reload --app-dir src
@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         except Exception as exc:
             print(
                 f"Warning: Failed to connect to MCP server at {MCP_SERVER_URL}: {exc}. "
-                "Falling back to native tools only."
+                "Falling back to native tools only. Set MCP_SERVER_URL= to suppress this warning."
             )
             app.state.agent_graph = await build_agent_graph()
             print("Agent ready (native tools only).")
@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="Streaming RAG — SRE Analyst API",
+    title="Streaming RAG â€” SRE Analyst API",
     description=(
         "An agentic API backed by a LangGraph ReAct agent. "
         "Send a natural-language question about your system logs and receive a "
