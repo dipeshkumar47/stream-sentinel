@@ -1,10 +1,10 @@
-# Engineering Roadmap & Production Improvements
+﻿# Engineering Roadmap & Production Improvements
 
-This document outlines the detailed technical roadmap designed to transition the project from a functional proof-of-concept into a production-grade, enterprise-ready system. It is structured to demonstrate senior-level software engineering, data streaming scalability, advanced agentic orchestration, and LLMOps evaluation—key dimensions evaluated in AI Engineer and AI Platform roles.
+This document outlines the detailed technical roadmap designed to transition the project from a functional proof-of-concept into a production-grade, enterprise-ready system. It is structured to demonstrate senior-level software engineering, data streaming scalability, advanced agentic orchestration, and LLMOps evaluationâ€”key dimensions evaluated in AI Engineer and AI Platform roles.
 
 ---
 
-## 🔄 Implemented Features & Capabilities
+## ðŸ”„ Implemented Features & Capabilities
 
 The following architectural and functional capabilities have been implemented in this project:
 
@@ -23,30 +23,30 @@ The following architectural and functional capabilities have been implemented in
 
 ---
 
-## 🎯 Strategic Priorities Overview
+## ðŸŽ¯ Strategic Priorities Overview
 
 ```
 Phase 1: Reliability, Data Integrity & Contract Remediation (Idempotency, Durability, API/Tool Contracts)
-   │
-   ▼
+   â”‚
+   â–¼
 Phase 2: Software Hardening (Tests, CI/CD, Micro-batching, Concurrency)
-   │
-   ▼
+   â”‚
+   â–¼
 Phase 3: Advanced Agent Capabilities (Memory, Structured Tools, Multi-MCP)
-   │
-   ▼
+   â”‚
+   â–¼
 Phase 4: LLMOps & Evaluation (Golden Dataset, Ragas/DeepEval, Guardrails)
-   │
-   ▼
+   â”‚
+   â–¼
 Phase 5: Streaming & Vector Engine Optimization (Hybrid Search, TTL, Chunking)
-   │
-   ▼
+   â”‚
+   â–¼
 Phase 6: Interactive Demo & Showcase (Streamlit/Chainlit UI, Live Incident Demo)
 ```
 
 ---
 
-## 🛡️ Phase 1: Reliability, Data Integrity & Contract Remediation
+## ðŸ›¡ï¸ Phase 1: Reliability, Data Integrity & Contract Remediation
 
 **Goal:** Prioritize end-to-end data integrity, crash durability, and strict API/tool contract enforcement so every advertised reliability guarantee is backed by deterministic verification.
 
@@ -75,11 +75,11 @@ Phase 6: Interactive Demo & Showcase (Streamlit/Chainlit UI, Live Incident Demo)
   - Define explicit terminal (`data: [DONE]`) and error event contracts, handle client disconnects and timeouts cleanly, and cancel outstanding model/graph execution when the HTTP client disconnects.
 - [ ] **1.7 Real Pipeline Integration & Runtime Baseline Verification:**
   - Separate mocked unit wiring tests from real pipeline integration tests that exercise Kafka -> SentenceTransformers (`all-MiniLM-L6-v2`) -> persistent ChromaDB -> retrieval of the exact produced `event_id`.
-  - Require the real integration suite in Docker-enabled CI so infrastructure or listener regressions never silently pass, and pin the tested Python runtime range (`3.11`–`3.12`) in CI.
+  - Require the real integration suite in Docker-enabled CI so infrastructure or listener regressions never silently pass, and pin the tested Python runtime range (`3.11`â€“`3.12`) in CI.
 
 ---
 
-## 🛠️ Phase 2: Software Engineering Hardening & Reliability
+## ðŸ› ï¸ Phase 2: Software Engineering Hardening & Reliability
 
 **Goal:** Eliminate single points of failure, ensure code correctness through automated testing, and optimize ingestion throughput.
 
@@ -92,7 +92,7 @@ Phase 6: Interactive Demo & Showcase (Streamlit/Chainlit UI, Live Incident Demo)
   - **Integration Tests:**
     - Test FastAPI endpoints (`/health`, `/api/v1/query`, `/api/v1/query/stream`) using `httpx.AsyncClient` or FastAPI `TestClient`.
     - End-to-end ingestion test: push sample message to mock consumer -> chunk -> embed -> verify vector store insertion.
-  - **Remaining verification gaps:** Add real Kafka-to-SentenceTransformers-to-ChromaDB integration coverage, full HTTP contract tests, and question-to-evidence agent evaluations in items 1.7, 2.5, and 4.1–4.2.
+  - **Remaining verification gaps:** Add real Kafka-to-SentenceTransformers-to-ChromaDB integration coverage, full HTTP contract tests, and question-to-evidence agent evaluations in items 1.7, 2.5, and 4.1â€“4.2.
 - [x] **2.2 CI/CD Pipeline (GitHub Actions):**
   - Create `.github/workflows/ci.yml` executing on every pull request and push to `main`.
   - Stages:
@@ -101,9 +101,9 @@ Phase 6: Interactive Demo & Showcase (Streamlit/Chainlit UI, Live Incident Demo)
     3. Automated test execution: `pytest --cov=src tests/`.
     4. Docker build validation: verify that application containers build successfully.
 - [ ] **2.3 Kafka Consumer Micro-Batching & Throughput Optimization:**
-  - *Current limitation:* Consuming and embedding logs individually ($O(1)$ synchronous calls) bottlenecks ingestion throughput to ~10–30 logs/sec.
+  - *Current limitation:* Consuming and embedding logs individually ($O(1)$ synchronous calls) bottlenecks ingestion throughput to ~10â€“30 logs/sec.
   - *Target architecture:*
-    - Buffer incoming logs into micro-batches (e.g., maximum batch size of 50–100 messages or a 200ms time window).
+    - Buffer incoming logs into micro-batches (e.g., maximum batch size of 50â€“100 messages or a 200ms time window).
     - Vectorize the entire batch using `embedder.embed_batch()` leveraging vectorized tensor operations.
     - Execute a single batch `collection.upsert()` in ChromaDB.
     - Commit Kafka offsets asynchronously per batch instead of synchronously per message.
@@ -121,7 +121,7 @@ Phase 6: Interactive Demo & Showcase (Streamlit/Chainlit UI, Live Incident Demo)
 
 ---
 
-## 🧠 Phase 3: Advanced Agentic Architecture & Orchestration
+## ðŸ§  Phase 3: Advanced Agentic Architecture & Orchestration
 
 **Goal:** Upgrade the LangGraph agent from a stateless ReAct loop into a stateful, robust investigative assistant integrated with multiple external systems.
 
@@ -144,7 +144,7 @@ Phase 6: Interactive Demo & Showcase (Streamlit/Chainlit UI, Live Incident Demo)
 
 ---
 
-## 📊 Phase 4: LLMOps, Evaluation & Quality Assurance
+## ðŸ“Š Phase 4: LLMOps, Evaluation & Quality Assurance
 
 **Goal:** Establish systematic quantitative metrics to measure retrieval accuracy, hallucination prevention, and agent answer quality.
 
@@ -175,7 +175,7 @@ Phase 6: Interactive Demo & Showcase (Streamlit/Chainlit UI, Live Incident Demo)
 
 ---
 
-## ⚡ Phase 5: Streaming, Data Ingestion & Vector Optimization
+## âš¡ Phase 5: Streaming, Data Ingestion & Vector Optimization
 
 **Goal:** Enhance log generation realism, optimize data retention, and improve search relevance across metadata dimensions.
 
@@ -196,7 +196,7 @@ Phase 6: Interactive Demo & Showcase (Streamlit/Chainlit UI, Live Incident Demo)
 
 ---
 
-## 🖥️ Phase 6: Interactive Demo & Showcase Experience
+## ðŸ–¥ï¸ Phase 6: Interactive Demo & Showcase Experience
 
 **Goal:** Deliver an intuitive, visually striking interface and reproducible presentation materials tailored for live demos and technical interviews.
 

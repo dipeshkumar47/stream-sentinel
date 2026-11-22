@@ -1,7 +1,7 @@
-# AGENT RUNBOOK & ONBOARDING GUIDE: Streaming RAG
+﻿# AGENT RUNBOOK & ONBOARDING GUIDE: stream-sentinel
 
 This document is an operational guide designed for **AI Coding Assistants, LLM Agents, and Technical Navigators** (e.g., Cursor, Claude Code, Copilot, Antigravity, Aider).
-When a user asks to run, test, inspect, or troubleshoot the **Streaming RAG** project, follow the rules, workflows, and diagnostic recipes described here.
+When a user asks to run, test, inspect, or troubleshoot the **stream-sentinel** project, follow the rules, workflows, and diagnostic recipes described here.
 
 ---
 
@@ -30,36 +30,36 @@ When a user asks to run, test, inspect, or troubleshoot the **Streaming RAG** pr
    - As soon as the stack is running and healthy (in Path A or Path B), **always compile and deliver the Final Setup Status Report** (defined in Section 6) containing the component status table, data pipeline check, live URLs, and sample queries ready to execute.
 5. **Mandatory End-to-End Validation & User Notice on LLM Latency**:
    - The agent MUST NOT stop at merely launching processes. It must automatically verify the `/health` endpoint (`{"status": "ok"}`) AND execute a live verification query against `POST /api/v1/query` to confirm the entire agentic loop (FastAPI + LangGraph + Ollama + ChromaDB) works properly.
-   - **Inform the User Upfront**: Before/during running the test query, the agent MUST explicitly inform the user that this verification query can take noticeable time (typically 30–90+ seconds, especially on CPU hardware without a dedicated GPU) because Ollama may need to load model weights into RAM (cold start) and the ReAct agent executes multiple inference passes (tool selection, retrieval, synthesis). This sets expectations and prevents the user from assuming the application is stuck.
+   - **Inform the User Upfront**: Before/during running the test query, the agent MUST explicitly inform the user that this verification query can take noticeable time (typically 30â€“90+ seconds, especially on CPU hardware without a dedicated GPU) because Ollama may need to load model weights into RAM (cold start) and the ReAct agent executes multiple inference passes (tool selection, retrieval, synthesis). This sets expectations and prevents the user from assuming the application is stuck.
 
 ---
 
 ## 2. System Architecture & Port Allocation
 
 ```
- ┌──────────────────────── Data Pipeline ─────────────────────────┐
- │                                                                │
- │  Producer ──► Kafka ──► Consumer ──► HF Embedder ──► ChromaDB  │
- │  (stream / --burst)     │ (retries + DLQ: system-logs-dlq)     │
- └────────────────────────────────────────────┬───────────────────┘
-                                              │
- ┌──────────────────────── Agentic Layer ─────▼────────────────────┐
- │                                                                 │
- │  POST /api/v1/query                                             │
- │         │                                                       │
- │         ▼                                                       │
- │  LangGraph ReAct Agent (Ollama · llama3.2:3b)                   │
- │         ├── vector_search ──► ChromaDB  (native tool + score)   │
- │         ├── log_stats    ──► ChromaDB  (native tool)            │
- │         └── [MCP tools]  ──► MCP Server (optional, SSE)         │
- └─────────────────────────────┬───────────────────────────────────┘
-                               │
-            ┌──────────────────▼──────────────────┐
-            │             MCP Server              │
-            │  (src/mcp_server/server.py)         │
-            │  ├── vector_search                  │
-            │  └── log_stats                      │
-            └─────────────────────────────────────┘
+ â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Data Pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+ â”‚                                                                â”‚
+ â”‚  Producer â”€â”€â–º Kafka â”€â”€â–º Consumer â”€â”€â–º HF Embedder â”€â”€â–º ChromaDB  â”‚
+ â”‚  (stream / --burst)     â”‚ (retries + DLQ: system-logs-dlq)     â”‚
+ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                              â”‚
+ â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Agentic Layer â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+ â”‚                                                                 â”‚
+ â”‚  POST /api/v1/query                                             â”‚
+ â”‚         â”‚                                                       â”‚
+ â”‚         â–¼                                                       â”‚
+ â”‚  LangGraph ReAct Agent (Ollama Â· llama3.2:3b)                   â”‚
+ â”‚         â”œâ”€â”€ vector_search â”€â”€â–º ChromaDB  (native tool + score)   â”‚
+ â”‚         â”œâ”€â”€ log_stats    â”€â”€â–º ChromaDB  (native tool)            â”‚
+ â”‚         â””â”€â”€ [MCP tools]  â”€â”€â–º MCP Server (optional, SSE)         â”‚
+ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                               â”‚
+            â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+            â”‚             MCP Server              â”‚
+            â”‚  (src/mcp_server/server.py)         â”‚
+            â”‚  â”œâ”€â”€ vector_search                  â”‚
+            â”‚  â””â”€â”€ log_stats                      â”‚
+            â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 | Service | Port | Protocol | Purpose |
@@ -78,11 +78,11 @@ When the user asks to run or test the project, prompt them to choose their targe
 
 ```
 Step 0: Ask User Preference
- ├── Option 1: "Path A (Docker Compose - Recommended for fast testing)"
- │    └──► Agent executes PATH A autonomously to completion -> Delivers working endpoints
- │
- └── Option 2: "Path B (Local Python Development - For code inspection / editing)"
-      └──► Agent executes PATH B autonomously to completion -> Delivers working endpoints
+ â”œâ”€â”€ Option 1: "Path A (Docker Compose - Recommended for fast testing)"
+ â”‚    â””â”€â”€â–º Agent executes PATH A autonomously to completion -> Delivers working endpoints
+ â”‚
+ â””â”€â”€ Option 2: "Path B (Local Python Development - For code inspection / editing)"
+      â””â”€â”€â–º Agent executes PATH B autonomously to completion -> Delivers working endpoints
 ```
 
 ---
@@ -130,7 +130,7 @@ docker compose logs -n 20 consumer
 
 ### Step A.5: End-to-End Query Verification & Delivery (Manage Latency Expectations)
 As soon as `/health` returns `ok` and logs are verified:
-1. **Inform User**: Notify the user that an end-to-end test query is being executed to verify the full stack, explicitly mentioning: *"Testing `/api/v1/query`. Please note that this may take 30–90 seconds while Ollama loads the model weights into RAM and the ReAct agent runs its reasoning loop."*
+1. **Inform User**: Notify the user that an end-to-end test query is being executed to verify the full stack, explicitly mentioning: *"Testing `/api/v1/query`. Please note that this may take 30â€“90 seconds while Ollama loads the model weights into RAM and the ReAct agent runs its reasoning loop."*
 2. **Execute Test Query**: Run a verification query against `POST /api/v1/query` and verify a valid JSON answer is returned.
 3. **Deliver Status Report**: Compile and deliver the structured **Final Setup Status Report** (as specified in Section 6).
 4. **Offer Interactive Testing**: Suggest trying the streaming endpoint (`/api/v1/query/stream`) or Swagger UI for further tests.
@@ -224,7 +224,7 @@ The MCP server defaults to **`stdio` mode** (matching `python src/mcp_server/ser
 ### Step B.8: Health Check, End-to-End Test Query & Status Delivery
 Once FastAPI is running and ChromaDB has ingested initial log vectors:
 1. **Health Verification**: Check that `GET /health` returns `{"status": "ok"}`.
-2. **Inform User on Latency**: Inform the user: *"Executing an end-to-end verification query against `/api/v1/query`. Note: This can take 30–90 seconds (longer on CPU systems without a dedicated GPU) while Ollama loads the model weights into RAM and the LangGraph ReAct agent runs multi-pass reasoning."*
+2. **Inform User on Latency**: Inform the user: *"Executing an end-to-end verification query against `/api/v1/query`. Note: This can take 30â€“90 seconds (longer on CPU systems without a dedicated GPU) while Ollama loads the model weights into RAM and the LangGraph ReAct agent runs multi-pass reasoning."*
 3. **Run Test Query**: Execute a verification query against `POST /api/v1/query` and confirm that a structured answer is received.
 4. **Compile & Deliver Report**: Compile and print the **Final Setup Status Report** (as specified in Section 6).
 5. **Offer Interactive Testing**: Recommend the SSE streaming endpoint (`/api/v1/query/stream`) or Swagger UI for smooth testing.
@@ -236,35 +236,35 @@ Once FastAPI is running and ChromaDB has ingested initial log vectors:
 Whenever the agent sets up the environment (Path A or Path B), it must:
 1. **Provide live progress checkpoints** during execution:
    ```text
-   ⏳ [1/4] Environment Configuration (.env, prerequisites)... OK
-   ⏳ [2/4] Service Startup (Kafka, Ollama, ChromaDB, FastAPI)... OK
-   ⏳ [3/4] Ingestion Pipeline Verification (Producer -> Consumer)... OK
-   ⏳ [4/4] End-to-End Validation (/health OK & query test verified)... OK
+   â³ [1/4] Environment Configuration (.env, prerequisites)... OK
+   â³ [2/4] Service Startup (Kafka, Ollama, ChromaDB, FastAPI)... OK
+   â³ [3/4] Ingestion Pipeline Verification (Producer -> Consumer)... OK
+   â³ [4/4] End-to-End Validation (/health OK & query test verified)... OK
    ```
-   *(Note: While executing checkpoint 4, always alert the user that running the test query may take 30–90 seconds due to Ollama loading the model and CPU reasoning cycles).*
+   *(Note: While executing checkpoint 4, always alert the user that running the test query may take 30â€“90 seconds due to Ollama loading the model and CPU reasoning cycles).*
 2. **Deliver the structured Final Setup Status Report** upon completion:
 
 ```markdown
-## 🏁 Setup Status Report: Streaming RAG
+## ðŸ Setup Status Report: stream-sentinel
 
-### 🟢 System Status: READY & OPERATIONAL
+### ðŸŸ¢ System Status: READY & OPERATIONAL
 
 | Component | Status | Port / Target | Health / Access URL |
 |---|---|---|---|
-| **FastAPI Backend** | 🟢 Healthy | `:8000` | [http://localhost:8000/health](http://localhost:8000/health) |
-| **Swagger UI Docs** | 🟢 Ready | `:8000/docs` | [http://localhost:8000/docs](http://localhost:8000/docs) |
-| **MCP Server** | 🟢 Active | `:8001` (SSE) / Stdio | [http://localhost:8001/sse](http://localhost:8001/sse) or stdio |
-| **Kafka Broker** | 🟢 Healthy | `:9092` | Internal KRaft cluster |
-| **ChromaDB Vector Store** | 🟢 Ready | `:8000` / SQLite | Collection `system-logs` indexed |
-| **Ollama LLM** | 🟢 Ready | `:11434` | Model `llama3.2:3b` active |
-| **Mock Producer** | 🟢 Emitting | Background | Streaming synthetic logs to Kafka |
-| **Ingestion Consumer** | 🟢 Ingesting | Background | Vectorizing & upserting logs |
+| **FastAPI Backend** | ðŸŸ¢ Healthy | `:8000` | [http://localhost:8000/health](http://localhost:8000/health) |
+| **Swagger UI Docs** | ðŸŸ¢ Ready | `:8000/docs` | [http://localhost:8000/docs](http://localhost:8000/docs) |
+| **MCP Server** | ðŸŸ¢ Active | `:8001` (SSE) / Stdio | [http://localhost:8001/sse](http://localhost:8001/sse) or stdio |
+| **Kafka Broker** | ðŸŸ¢ Healthy | `:9092` | Internal KRaft cluster |
+| **ChromaDB Vector Store** | ðŸŸ¢ Ready | `:8000` / SQLite | Collection `system-logs` indexed |
+| **Ollama LLM** | ðŸŸ¢ Ready | `:11434` | Model `llama3.2:3b` active |
+| **Mock Producer** | ðŸŸ¢ Emitting | Background | Streaming synthetic logs to Kafka |
+| **Ingestion Consumer** | ðŸŸ¢ Ingesting | Background | Vectorizing & upserting logs |
 
-### 📊 Data Pipeline Verification
+### ðŸ“Š Data Pipeline Verification
 - **Kafka Stream**: Confirmed messages published to `system-logs`.
 - **Vector Ingestion**: Confirmed log chunks embedded (`all-MiniLM-L6-v2`) and indexed into ChromaDB.
 
-### 🚀 Immediate Next Steps for Testing
+### ðŸš€ Immediate Next Steps for Testing
 1. **Interactive UI**: Open [http://localhost:8000/docs](http://localhost:8000/docs) to test `/api/v1/query` directly.
 2. **Instant Semantic Test Query**:
    ```bash
@@ -357,7 +357,7 @@ mypy src
 | `ChromaDB empty results` | Producer or Consumer has not run yet | Run `python src/producer.py --burst 20` and `python src/consumer.py` to ingest vectors into `data/chroma/` |
 | `Port 8000 already in use` | Another instance of Uvicorn or container running | Check active listeners (`netstat -ano \| findstr :8000` on Windows, `lsof -i :8000` on Linux) |
 | `ImportError: cannot import name ...` | `src/` not on Python path | Ensure `--app-dir src` is passed to Uvicorn or run pytest (which configures `pythonpath = src` via `pytest.ini`) |
-| `POST /api/v1/query` takes 60–90s or appears frozen | Ollama runs on CPU; model cold start loading into RAM; ReAct agent runs 2 inference passes (tool selection + synthesis); `curl -s` hides all progress | Inform user upfront of expected latency (~3.5 words/s on CPU). Recommend using the streaming endpoint (`/api/v1/query/stream` with `curl -N`), lowering `k` (e.g. 2–3), or testing via Swagger UI. |
+| `POST /api/v1/query` takes 60â€“90s or appears frozen | Ollama runs on CPU; model cold start loading into RAM; ReAct agent runs 2 inference passes (tool selection + synthesis); `curl -s` hides all progress | Inform user upfront of expected latency (~3.5 words/s on CPU). Recommend using the streaming endpoint (`/api/v1/query/stream` with `curl -N`), lowering `k` (e.g. 2â€“3), or testing via Swagger UI. |
 
 ---
 

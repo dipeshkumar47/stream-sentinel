@@ -1,10 +1,10 @@
-# Step-by-Step Guide: Build, Run & Test
+﻿# Step-by-Step Guide: Build, Run & Test
 
 A comprehensive, hands-on guide for building the project, running individual modules and services, and testing the API, LangGraph agent, tools, and MCP server.
 
 ---
 
-## 📋 Table of Contents
+## ðŸ“‹ Table of Contents
 
 1. [Prerequisites & System Requirements](#1-prerequisites--system-requirements)
 2. [Building the Project](#2-building-the-project)
@@ -54,7 +54,7 @@ Use this method when developing or debugging application code without container 
 
 ```bash
 # 1. Clone repository and navigate to root
-cd streaming-rag
+cd stream-sentinel
 
 # 2. Create and activate virtual environment
 python -m venv .venv
@@ -89,7 +89,7 @@ ollama pull llama3.2:3b
 Build the optimized multi-stage application image (bundles the Hugging Face sentence-transformers model directly in the image layer for rapid cold starts):
 
 ```bash
-docker build -t streaming-rag:local .
+docker build -t stream-sentinel:local .
 ```
 
 ---
@@ -106,18 +106,18 @@ For local Kubernetes validation using Kind:
 Or step-by-step:
 ```bash
 # 1. Create a Kind cluster
-kind create cluster --name streaming-rag
+kind create cluster --name stream-sentinel
 
 # 2. Build and load the Docker image into the Kind cluster nodes
-docker build -t streaming-rag:local .
-kind load docker-image streaming-rag:local --name streaming-rag
+docker build -t stream-sentinel:local .
+kind load docker-image stream-sentinel:local --name stream-sentinel
 
 # 3. Install the Helm chart
-helm upgrade --install streaming-rag ./charts/streaming-rag -n streaming-rag --create-namespace
+helm upgrade --install stream-sentinel ./charts/stream-sentinel -n stream-sentinel --create-namespace
 
 # 4. Port forward services for access
-kubectl port-forward -n streaming-rag svc/api 8000:8000
-kubectl port-forward -n streaming-rag svc/mcp 8001:8001
+kubectl port-forward -n stream-sentinel svc/api 8000:8000
+kubectl port-forward -n stream-sentinel svc/mcp 8001:8001
 ```
 
 ---
@@ -367,7 +367,7 @@ Add the server entry to your MCP configuration:
 ```json
 {
   "mcpServers": {
-    "streaming-rag-logs": {
+    "stream-sentinel-logs": {
       "url": "http://localhost:8001/sse"
     }
   }

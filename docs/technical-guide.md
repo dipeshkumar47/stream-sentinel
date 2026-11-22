@@ -1,38 +1,38 @@
-# Streaming RAG: System Architecture & Technical Implementation Guide
+﻿# stream-sentinel: System Architecture & Technical Implementation Guide
 
-A unified, comprehensive reference detailing the engineering motivations, architectural trade-offs, and implementation specifications of the **End-to-End Streaming RAG** platform.
+A unified, comprehensive reference detailing the engineering motivations, architectural trade-offs, and implementation specifications of the **End-to-End stream-sentinel** platform.
 
 ---
 
-## 📋 Table of Contents
+## ðŸ“‹ Table of Contents
 
 1. [Executive Summary & Problem Space](#1-executive-summary--problem-space)
 2. [End-to-End System Architecture](#2-end-to-end-system-architecture)
-3. [Layer 1 — Ingestion & Streaming (Kafka KRaft)](#3-layer-1--ingestion--streaming-kafka-kraft)
+3. [Layer 1 â€” Ingestion & Streaming (Kafka KRaft)](#3-layer-1--ingestion--streaming-kafka-kraft)
    - [Kafka KRaft Broker Architecture](#kafka-kraft-broker-architecture)
    - [Typed Log Contract (`SystemLog`)](#typed-log-contract-systemlog)
    - [Producer & Partition Key Strategy](#producer--partition-key-strategy)
    - [Consumer Group, Retry Resilience & Dead Letter Queue (DLQ)](#consumer-group-retry-resilience--dead-letter-queue-dlq)
-4. [Layer 2 — Vector Processing & Semantic Storage (ChromaDB)](#4-layer-2--vector-processing--semantic-storage-chromadb)
+4. [Layer 2 â€” Vector Processing & Semantic Storage (ChromaDB)](#4-layer-2--vector-processing--semantic-storage-chromadb)
    - [Embedding Model Selection](#embedding-model-selection)
    - [Log Chunking & Synthesis](#log-chunking--synthesis)
    - [ChromaDB Architecture: Embedded vs Client-Server](#chromadb-architecture-embedded-vs-client-server)
    - [Idempotent Upserts](#idempotent-upserts)
-5. [Layer 3 — Agentic Reasoning & API (LangGraph & FastAPI)](#5-layer-3--agentic-reasoning--api-langgraph--fastapi)
+5. [Layer 3 â€” Agentic Reasoning & API (LangGraph & FastAPI)](#5-layer-3--agentic-reasoning--api-langgraph--fastapi)
    - [ReAct Agent Architecture](#react-agent-architecture)
    - [Local LLM Engine (ChatOllama)](#local-llm-engine-chatollama)
    - [Native Agent Tools (`vector_search` & `log_stats`)](#native-agent-tools-vector_search--log_stats)
    - [SRE Persona Prompt & Hallucination Guardrails](#sre-persona-prompt--hallucination-guardrails)
    - [FastAPI HTTP Layer & Real-Time Token Streaming (SSE)](#fastapi-http-layer--real-time-token-streaming-sse)
    - [LangSmith Observability](#langsmith-observability)
-6. [Layer 4 — Interoperability via Model Context Protocol (MCP)](#6-layer-4--interoperability-via-model-context-protocol-mcp)
+6. [Layer 4 â€” Interoperability via Model Context Protocol (MCP)](#6-layer-4--interoperability-via-model-context-protocol-mcp)
    - [Why Model Context Protocol?](#why-model-context-protocol)
    - [FastMCP Implementation & Schema Generation](#fastmcp-implementation--schema-generation)
    - [Transport Modes: Stdio vs SSE](#transport-modes-stdio-vs-sse)
    - [Async Graph Factory & Lifespan Architecture](#async-graph-factory--lifespan-architecture)
    - [Lazy Embedding Initialization](#lazy-embedding-initialization)
    - [Dynamic MCP Client Capabilities](#dynamic-mcp-client-capabilities)
-7. [Layer 5 — Cloud-Native Packaging & Infrastructure (Docker, Helm, Kind)](#7-layer-5--cloud-native-packaging--infrastructure-docker-helm-kind)
+7. [Layer 5 â€” Cloud-Native Packaging & Infrastructure (Docker, Helm, Kind)](#7-layer-5--cloud-native-packaging--infrastructure-docker-helm-kind)
    - [Multi-Stage Dockerfile Architecture](#multi-stage-dockerfile-architecture)
    - [Unified Docker Compose Orchestration](#unified-docker-compose-orchestration)
    - [Kubernetes & Parameterized Helm Chart](#kubernetes--parameterized-helm-chart)
@@ -48,7 +48,7 @@ Diagnosing production incidents in distributed cloud architectures is inherently
 2. **Correlation Pressure:** Finding the causal chain (e.g., Auth service slows down $\rightarrow$ Payment service retries $\rightarrow$ Database connection pool starves) requires manual timestamp correlation across disparate dashboards.
 3. **High Mean Time to Detect/Resolve (MTTD/MTTR):** High-stress manual grep/Elasticsearch queries delay mitigation.
 
-### The Solution: Event-Driven Streaming RAG
+### The Solution: Event-Driven stream-sentinel
 This project bridges distributed data streaming and agentic reasoning. Rather than performing static batch ingestion or relying on LLM internal memory:
 - **Continuous Ingestion:** Application logs are captured live from an Apache Kafka event stream with Dead Letter Queue (`system-logs-dlq`) protection.
 - **In-Process Vectorization:** Incoming events are vectorized on the fly using a local dense embedding model and stored in a vector database alongside operational metadata (`event_id`, `service_name`, `log_level`, `timestamp`, `partition`, `offset`).
@@ -60,49 +60,49 @@ This project bridges distributed data streaming and agentic reasoning. Rather th
 ## 2. End-to-End System Architecture
 
 ```
-┌───────────────────────────────── Data Pipeline ──────────────────────────────────┐
-│                                                                                  │
-│   Mock Producer  ──────►  Kafka Broker  ──────►  Ingestion Consumer              │
-│  (src/producer.py)        (KRaft Mode)           (src/consumer.py)               │
-│   [stream / --burst]      ├── system-logs               │                        │
-│                           └── system-logs-dlq ◄─────────┤ (DLQ on error/corrupt) │
-│                                                         ▼                        │
-│                                                 all-MiniLM-L6-v2                 │
-│                                                (src/embeddings.py)               │
-│                                                         │                        │
-│                                                         ▼                        │
-│                                                      ChromaDB                    │
-│                                                (data/chroma or HTTP)             │
-└────────────────────────────────────────┬─────────────────────────────────────────┘
-                                         │
-┌───────────────────────────────── Agentic Layer ──────────────────────────────────┐
-│                                                                                  │
-│   Client REST / SSE Request                                                      │
-│              │                                                                   │
-│              ▼                                                                   │
-│   FastAPI (src/api/main.py)                                                      │
-│              │                                                                   │
-│              ▼                                                                   │
-│   LangGraph ReAct Agent (src/agent/graph.py · Ollama llama3.2:3b)                │
-│         ├── vector_search ──► ChromaDB (semantic retrieval + confidence score)   │
-│         ├── log_stats    ──► ChromaDB (metadata aggregation)                     │
-│         └── [MCP Tools]  ──► External MCP Servers (via SSE)                      │
-└────────────────────────────────────────┬─────────────────────────────────────────┘
-                                         │
-┌───────────────────────────────── MCP Server ─────────────────────────────────────┐
-│                                                                                  │
-│   FastMCP Server (src/mcp_server/server.py)                                      │
-│         ├── vector_search (ChromaDB + all-MiniLM-L6-v2)                          │
-│         └── log_stats     (ChromaDB metadata filter)                             │
-│                  │                                                               │
-│                  ├── SSE (:8001/sse) ──► Remote AI Agents / IDEs                 │
-│                  └── stdio           ──► Local Desktop Clients (Cursor, Claude)  │
-└──────────────────────────────────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Data Pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                                                                                  â”‚
+â”‚   Mock Producer  â”€â”€â”€â”€â”€â”€â–º  Kafka Broker  â”€â”€â”€â”€â”€â”€â–º  Ingestion Consumer              â”‚
+â”‚  (src/producer.py)        (KRaft Mode)           (src/consumer.py)               â”‚
+â”‚   [stream / --burst]      â”œâ”€â”€ system-logs               â”‚                        â”‚
+â”‚                           â””â”€â”€ system-logs-dlq â—„â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤ (DLQ on error/corrupt) â”‚
+â”‚                                                         â–¼                        â”‚
+â”‚                                                 all-MiniLM-L6-v2                 â”‚
+â”‚                                                (src/embeddings.py)               â”‚
+â”‚                                                         â”‚                        â”‚
+â”‚                                                         â–¼                        â”‚
+â”‚                                                      ChromaDB                    â”‚
+â”‚                                                (data/chroma or HTTP)             â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                         â”‚
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Agentic Layer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                                                                                  â”‚
+â”‚   Client REST / SSE Request                                                      â”‚
+â”‚              â”‚                                                                   â”‚
+â”‚              â–¼                                                                   â”‚
+â”‚   FastAPI (src/api/main.py)                                                      â”‚
+â”‚              â”‚                                                                   â”‚
+â”‚              â–¼                                                                   â”‚
+â”‚   LangGraph ReAct Agent (src/agent/graph.py Â· Ollama llama3.2:3b)                â”‚
+â”‚         â”œâ”€â”€ vector_search â”€â”€â–º ChromaDB (semantic retrieval + confidence score)   â”‚
+â”‚         â”œâ”€â”€ log_stats    â”€â”€â–º ChromaDB (metadata aggregation)                     â”‚
+â”‚         â””â”€â”€ [MCP Tools]  â”€â”€â–º External MCP Servers (via SSE)                      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                         â”‚
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ MCP Server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                                                                                  â”‚
+â”‚   FastMCP Server (src/mcp_server/server.py)                                      â”‚
+â”‚         â”œâ”€â”€ vector_search (ChromaDB + all-MiniLM-L6-v2)                          â”‚
+â”‚         â””â”€â”€ log_stats     (ChromaDB metadata filter)                             â”‚
+â”‚                  â”‚                                                               â”‚
+â”‚                  â”œâ”€â”€ SSE (:8001/sse) â”€â”€â–º Remote AI Agents / IDEs                 â”‚
+â”‚                  â””â”€â”€ stdio           â”€â”€â–º Local Desktop Clients (Cursor, Claude)  â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
 
-## 3. Layer 1 — Ingestion & Streaming (Kafka KRaft)
+## 3. Layer 1 â€” Ingestion & Streaming (Kafka KRaft)
 
 The ingestion layer establishes a high-throughput, fault-tolerant message pipeline that decouples log generation from indexing.
 
@@ -145,14 +145,14 @@ The consumer (`src/consumer.py`) belongs to the `rag-ingestion-group` consumer g
 
 ---
 
-## 4. Layer 2 — Vector Processing & Semantic Storage (ChromaDB)
+## 4. Layer 2 â€” Vector Processing & Semantic Storage (ChromaDB)
 
 The vector layer converts raw string logs into spatial embeddings to allow semantic similarity lookups.
 
 ### Embedding Model Selection
 - **Model:** `all-MiniLM-L6-v2` (SentenceTransformers, 384 dimensions).
 - **In-Process Inference:** Executes locally in Python without making remote cloud API calls (no OpenAI API key dependencies, zero external network latency, full data privacy).
-- **Latency & Resource Footprint:** Produces 384-dimensional dense vectors in ~5–15 ms per message on standard CPU hardware.
+- **Latency & Resource Footprint:** Produces 384-dimensional dense vectors in ~5â€“15 ms per message on standard CPU hardware.
 
 ### Log Chunking & Synthesis
 Logs are small structured payloads rather than lengthy unstructured documents. The chunking strategy (`src/chunking.py`) applies a **one-log-entry-to-one-chunk** rule:
@@ -174,7 +174,7 @@ To preserve at-least-once delivery semantics without creating duplicate records 
 
 ---
 
-## 5. Layer 3 — Agentic Reasoning & API (LangGraph & FastAPI)
+## 5. Layer 3 â€” Agentic Reasoning & API (LangGraph & FastAPI)
 
 The agentic layer provides the intelligence: an LLM that actively decides what data it needs to inspect in order to answer user inquiries.
 
@@ -215,13 +215,13 @@ The system prompt (`src/agent/prompts.py`) enforces strict SRE operational guide
 Configured automatically via standard environment variables:
 - `LANGCHAIN_TRACING_V2=true`
 - `LANGCHAIN_API_KEY=<key>`
-- `LANGCHAIN_PROJECT=streaming-rag`
+- `LANGCHAIN_PROJECT=stream-sentinel`
 
 Logs every ReAct trajectory step, tool invocation latency, token usage breakdown, and LLM input/output directly to the LangSmith dashboard.
 
 ---
 
-## 6. Layer 4 — Interoperability via Model Context Protocol (MCP)
+## 6. Layer 4 â€” Interoperability via Model Context Protocol (MCP)
 
 The Model Context Protocol layer exposes the log intelligence engine to external AI clients without coupling them to FastAPI REST endpoints.
 
@@ -253,7 +253,7 @@ The LangGraph agent can act as both an MCP provider and consumer:
 
 ---
 
-## 7. Layer 5 — Cloud-Native Packaging & Infrastructure (Docker, Helm, Kind)
+## 7. Layer 5 â€” Cloud-Native Packaging & Infrastructure (Docker, Helm, Kind)
 
 The platform is fully packaged for declarative, single-command deployment locally and on Kubernetes.
 
@@ -274,7 +274,7 @@ The root `docker-compose.yml` orchestrates the complete 7-container topology:
   4. `api` starts only after `chroma` is healthy and `ollama-init` is completed.
 
 ### Kubernetes & Parameterized Helm Chart
-Packaged in `charts/streaming-rag/`:
+Packaged in `charts/stream-sentinel/`:
 - **Kubernetes Resources:** Deployments for API, Consumer, Producer, and MCP; StatefulSet/Deployment for Chroma and Ollama; PersistentVolumeClaims for model and vector storage; ClusterIP Services; ConfigMaps and Secrets.
 - **Helm Values:** Parameterized model names (`ollama.model`), Kafka broker addresses, replicas, and CPU/memory resource limits.
 - **One-Command Kind Deployment:** `./scripts/kind-deploy.sh` creates a local Kind cluster, builds the application container, loads the image into cluster nodes, and applies the Helm chart.

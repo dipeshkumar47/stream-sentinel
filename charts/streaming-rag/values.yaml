@@ -1,11 +1,11 @@
-# Default values for streaming-rag (Kind / laptop-friendly).
+﻿# Default values for stream-sentinel (Kind / laptop-friendly).
 # Full stack (Kind + Ollama + Kafka + embeddings) wants ~16 GB+ host RAM.
 
 nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: streaming-rag
+  repository: stream-sentinel
   tag: local
   pullPolicy: IfNotPresent
 
@@ -90,7 +90,7 @@ mcp:
 langsmith:
   enabled: false
   tracing: "true"
-  project: streaming-rag
+  project: stream-sentinel
   # Set via --set-string langsmith.apiKey=... or existing Secret
   apiKey: ""
   existingSecret: ""

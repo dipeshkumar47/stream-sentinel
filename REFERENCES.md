@@ -1,7 +1,7 @@
-# Technical References & Documentation
+﻿# Technical References & Documentation
 
-> **Course:** Cluster Computing — INT315  
-> **Project:** Event-Driven Streaming RAG for Real-Time Distributed Incident Analysis  
+> **Course:** Cluster Computing â€” INT315  
+> **Project:** stream-sentinel: Real-Time Log Streaming and AI-Powered SRE Incident Analysis  
 
 ---
 
@@ -10,7 +10,7 @@
    Available: [https://kafka.apache.org/documentation/#kraft](https://kafka.apache.org/documentation/#kraft)
 
 2. **Retrieval-Augmented Generation (RAG)**  
-   Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H., Lewis, M., Yih, W., Rocktäschel, T., Riedel, S., & Kiela, D. (2020). *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks*. Advances in Neural Information Processing Systems (NeurIPS 2020), 33, 9459–9474.  
+   Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., KÃ¼ttler, H., Lewis, M., Yih, W., RocktÃ¤schel, T., Riedel, S., & Kiela, D. (2020). *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks*. Advances in Neural Information Processing Systems (NeurIPS 2020), 33, 9459â€“9474.  
    Available: [https://arxiv.org/abs/2005.11401](https://arxiv.org/abs/2005.11401)
 
 3. **ReAct: Reasoning and Acting in Language Models**  

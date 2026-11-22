@@ -1,10 +1,10 @@
-# Architectural Decision Records (ADR) — Streaming RAG
+﻿# Architectural Decision Records (ADR) â€” stream-sentinel
 
-This document details the **Architectural Decision Records (ADRs)** for the Streaming RAG platform. Each record outlines the operational context, the problem statement, the evaluated alternatives, the final decision with engineering rationales, trade-offs, and exact code references.
+This document details the **Architectural Decision Records (ADRs)** for the stream-sentinel platform. Each record outlines the operational context, the problem statement, the evaluated alternatives, the final decision with engineering rationales, trade-offs, and exact code references.
 
 ---
 
-## 📋 ADR Index
+## ðŸ“‹ ADR Index
 
 | ADR ID | Title | Status | Scope |
 | :--- | :--- | :--- | :--- |
@@ -46,8 +46,8 @@ We adopted **Kafka KRaft Mode** using `confluentinc/cp-kafka:7.5.0` with combine
 * **Trade-Off:** Single-node KRaft is optimized for development, testing, and single-broker validation; production horizontal scale requires configuring a 3-node controller quorum.
 
 ### Code References
-* [`docker-compose.yml`](../docker-compose.yml#L9-L33) (lines 9–33)
-* [`charts/streaming-rag/templates/kafka.yaml`](../charts/streaming-rag/templates/kafka.yaml)
+* [`docker-compose.yml`](../docker-compose.yml#L9-L33) (lines 9â€“33)
+* [`charts/stream-sentinel/templates/kafka.yaml`](../charts/stream-sentinel/templates/kafka.yaml)
 
 ---
 
@@ -74,7 +74,7 @@ We chose to **partition explicitly by `service_name`**.
 
 ### Code References
 * [`src/producer.py`](../src/producer.py#L194-L212) (`send_log`)
-* [`src/model/models.py`](../src/model/models.py#L25-L28) (lines 25–28)
+* [`src/model/models.py`](../src/model/models.py#L25-L28) (lines 25â€“28)
 
 ---
 
@@ -124,13 +124,13 @@ We selected **in-process `all-MiniLM-L6-v2`** via the `sentence-transformers` li
 
 ### Decision Rationales & Trade-Offs
 * **Privacy & Security Compliance:** Infrastructure and security logs frequently contain internal IPs, service names, and diagnostic traces. In-process vectorization ensures zero sensitive telemetry leaves the infrastructure boundary.
-* **Predictable Low Latency:** Produces 384-dimensional embeddings in ~5–15 ms on standard CPU without outbound network hops, rate limits, or HTTP serialization overhead.
+* **Predictable Low Latency:** Produces 384-dimensional embeddings in ~5â€“15 ms on standard CPU without outbound network hops, rate limits, or HTTP serialization overhead.
 * **Zero Operational Cost:** No recurring billing for embedding millions of synthetic or production log events.
 * **Trade-Off:** CPU consumption during sustained burst ingestion. Mitigated by pre-baking model weights into Docker and supporting batch embedding (`embed_batch`).
 
 ### Code References
-* [`src/embeddings.py`](../src/embeddings.py#L6-L21) (lines 6–21)
-* [`Dockerfile`](../Dockerfile#L18-L23) (lines 18–23, pre-download)
+* [`src/embeddings.py`](../src/embeddings.py#L6-L21) (lines 6â€“21)
+* [`Dockerfile`](../Dockerfile#L18-L23) (lines 18â€“23, pre-download)
 
 ---
 
@@ -158,8 +158,8 @@ We implemented a **transparent dual-mode client wrapper** in [`src/vector_store.
 * **Clean Abstraction:** Downstream code calls `get_collection()`, `upsert_log()`, and `query_similar()` without needing to know which mode is active.
 
 ### Code References
-* [`src/vector_store.py`](../src/vector_store.py#L15-L30) (lines 15–30)
-* [`src/config.py`](../src/config.py#L16-L22) (lines 16–22)
+* [`src/vector_store.py`](../src/vector_store.py#L15-L30) (lines 15â€“30)
+* [`src/config.py`](../src/config.py#L16-L22) (lines 16â€“22)
 
 ---
 
@@ -190,7 +190,7 @@ We implemented a **LangGraph ReAct Agent** with two specialized tools:
 * **Trade-Off (Latency & Loop Budget):** ReAct loops involve multiple LLM generation cycles (think $\rightarrow$ tool call $\rightarrow$ think $\rightarrow$ response). Mitigated by temperature 0 and concise system prompts.
 
 ### Code References
-* [`src/agent/graph.py`](../src/agent/graph.py#L33-L48) (lines 33–48)
+* [`src/agent/graph.py`](../src/agent/graph.py#L33-L48) (lines 33â€“48)
 * [`src/agent/tools.py`](../src/agent/tools.py#L20-L152)
 * [`src/agent/prompts.py`](../src/agent/prompts.py#L3-L39)
 
@@ -202,7 +202,7 @@ We implemented a **LangGraph ReAct Agent** with two specialized tools:
 **Accepted**
 
 ### Context & Problem Statement
-The agent requires an LLM engine capable of native function/tool calling. Running large 7B or 8B parameter models locally on standard laptops without dedicated GPUs causes slow token generation (high TTFT - Time To First Token) and consumes 6–8 GB of RAM. Conversely, calling cloud LLM APIs (OpenAI GPT-4, Anthropic Claude) incurs ongoing costs and leaks operational log data outside the local network.
+The agent requires an LLM engine capable of native function/tool calling. Running large 7B or 8B parameter models locally on standard laptops without dedicated GPUs causes slow token generation (high TTFT - Time To First Token) and consumes 6â€“8 GB of RAM. Conversely, calling cloud LLM APIs (OpenAI GPT-4, Anthropic Claude) incurs ongoing costs and leaks operational log data outside the local network.
 
 ### Considered Alternatives
 1. **Cloud LLM APIs (OpenAI / Anthropic):** High quality, but introduces cloud billing and sensitive log data exfiltration.
@@ -217,13 +217,13 @@ We adopted **`llama3.2:3b` hosted via Ollama** with `OLLAMA_KEEP_ALIVE=30m`.
 * **Low Memory Footprint:** Requires only ~2.0 GB VRAM/RAM, leaving ample host memory for Kafka, ChromaDB, and Python services.
 * **Fast CPU Token Generation:** Produces responsive streaming answers on standard CPU cores (~3x faster than 7B/8B models).
 * **Native Tool-Calling Support:** Fine-tuned specifically for structured JSON function calling.
-* **Cold-Start Elimination:** Setting `keep_alive=30m` prevents Ollama from unloading the model from RAM after idle periods, eliminating 5–10 second reload delays.
+* **Cold-Start Elimination:** Setting `keep_alive=30m` prevents Ollama from unloading the model from RAM after idle periods, eliminating 5â€“10 second reload delays.
 * **Trade-Off:** 3B models have smaller reasoning capacity than 70B models. Mitigated by strict prompt constraints and structured tool contracts.
 
 ### Code References
-* [`src/agent/graph.py`](../src/agent/graph.py#L24-L30) (lines 24–30)
-* [`docker-compose.yml`](../docker-compose.yml#L53-L84) (lines 53–84)
-* [`charts/streaming-rag/templates/ollama.yaml`](../charts/streaming-rag/templates/ollama.yaml)
+* [`src/agent/graph.py`](../src/agent/graph.py#L24-L30) (lines 24â€“30)
+* [`docker-compose.yml`](../docker-compose.yml#L53-L84) (lines 53â€“84)
+* [`charts/stream-sentinel/templates/ollama.yaml`](../charts/stream-sentinel/templates/ollama.yaml)
 
 ---
 
@@ -251,7 +251,7 @@ We implemented a dedicated **FastMCP server** ([`src/mcp_server/server.py`](../s
 
 ### Code References
 * [`src/mcp_server/server.py`](../src/mcp_server/server.py#L25-L176)
-* [`src/api/main.py`](../src/api/main.py#L41-L53) (lines 41–53)
+* [`src/api/main.py`](../src/api/main.py#L41-L53) (lines 41â€“53)
 
 ---
 
@@ -269,7 +269,7 @@ Packaging four distinct Python application roles (`producer`, `consumer`, `api`,
 3. **Single Multi-Stage Image with Pre-Baked Weights:** One consolidated build that installs dependencies, pre-downloads the model cache into `/models`, and produces a slim runtime image.
 
 ### Decision Outcome
-We designed a **single multi-stage `Dockerfile`** that builds a unified image (`streaming-rag:local`).
+We designed a **single multi-stage `Dockerfile`** that builds a unified image (`stream-sentinel:local`).
 
 ### Decision Rationales & Trade-Offs
 * **Instant Cold Starts:** Model weights are baked into `/models` during `docker build`. Containers start immediately without external internet access.
@@ -279,7 +279,7 @@ We designed a **single multi-stage `Dockerfile`** that builds a unified image (`
 ### Code References
 * [`Dockerfile`](../Dockerfile#L5-L46)
 * [`docker-compose.yml`](../docker-compose.yml#L85-L165)
-* [`.github/workflows/ci.yml`](../.github/workflows/ci.yml#L46-L67) (lines 46–67)
+* [`.github/workflows/ci.yml`](../.github/workflows/ci.yml#L46-L67) (lines 46â€“67)
 
 ---
 

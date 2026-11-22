@@ -1,4 +1,4 @@
-# Data Contract: SystemLog
+﻿# Data Contract: SystemLog
 
 The `SystemLog` model in `src/model/models.py` is the shared contract between the Kafka producer and consumer. Both services import the same Pydantic class so the schema cannot drift between write and read paths.
 
@@ -6,9 +6,9 @@ The `SystemLog` model in `src/model/models.py` is the shared contract between th
 
 Phase 1.2 requires strictly typed log schemas. Defining the model once and reusing it gives:
 
-- **Single source of truth** — field names, types, and constraints live in one file.
-- **Runtime validation** — the consumer rejects malformed messages before processing.
-- **JSON interoperability** — Pydantic serializes to standard JSON that any future service (embedder, API) can consume.
+- **Single source of truth** â€” field names, types, and constraints live in one file.
+- **Runtime validation** â€” the consumer rejects malformed messages before processing.
+- **JSON interoperability** â€” Pydantic serializes to standard JSON that any future service (embedder, API) can consume.
 
 ## Fields
 
@@ -62,8 +62,8 @@ Non-error events omit `stack_trace` or set it to `null`:
 
 | Direction | Method |
 |-----------|--------|
-| Producer → Kafka | `log_entry.model_dump_json().encode("utf-8")` |
-| Kafka → Consumer | `SystemLog.from_kafka_payload(msg.value())` |
+| Producer â†’ Kafka | `log_entry.model_dump_json().encode("utf-8")` |
+| Kafka â†’ Consumer | `SystemLog.from_kafka_payload(msg.value())` |
 
 `from_kafka_payload` is a convenience wrapper around `model_validate_json` that handles UTF-8 decoding.
 
@@ -88,9 +88,9 @@ During ingestion, `chunk_log()` produces metadata stored in ChromaDB alongside e
 - `partition` and `offset`: Kafka coordinates
 
 When `POST /api/v1/query` returns cited sources in `QueryResponse.sources`, each `LogSource` includes:
-- `event_id: str | None` — unique identifier of the cited log event
+- `event_id: str | None` â€” unique identifier of the cited log event
 - `service_name: str`
 - `log_level: str`
 - `timestamp: str`
-- `score: float | None` — normalized vector similarity confidence score (`0.0` to `1.0`)
-- `excerpt: str` — relevant portion of the log document
+- `score: float | None` â€” normalized vector similarity confidence score (`0.0` to `1.0`)
+- `excerpt: str` â€” relevant portion of the log document
