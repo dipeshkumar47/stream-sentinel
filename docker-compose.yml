@@ -1,4 +1,4 @@
-# Unified local stack — Phase 5.2
+﻿# Unified local stack â€” Phase 5.2
 # Usage (from project root):
 #   docker compose up --build
 #
@@ -39,7 +39,7 @@ services:
     environment:
       IS_PERSISTENT: "TRUE"
       ANONYMIZED_TELEMETRY: "FALSE"
-    # Port 8000 is internal only — host :8000 is reserved for the API.
+    # Port 8000 is internal only â€” host :8000 is reserved for the API.
     expose:
       - "8000"
     healthcheck:
@@ -130,7 +130,7 @@ services:
       OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
       LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-}
       LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}
-      LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-streaming-rag}
+      LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-stream-sentinel}
     command:
       [
         "uvicorn",

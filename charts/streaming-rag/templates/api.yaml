@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   name: api
   labels:
-    {{- include "streaming-rag.labels" . | nindent 4 }}
+    {{- include "stream-sentinel.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/component: api
-      {{- include "streaming-rag.selectorLabels" . | nindent 6 }}
+      {{- include "stream-sentinel.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app.kubernetes.io/component: api
-        {{- include "streaming-rag.selectorLabels" . | nindent 8 }}
+        {{- include "stream-sentinel.selectorLabels" . | nindent 8 }}
     spec:
       initContainers:
         - name: wait-for-chroma
@@ -39,7 +39,7 @@ spec:
               echo "Model available."
       containers:
         - name: api
-          image: {{ include "streaming-rag.appImage" . }}
+          image: {{ include "stream-sentinel.appImage" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - uvicorn
@@ -53,7 +53,7 @@ spec:
               containerPort: 8000
           envFrom:
             - configMapRef:
-                name: streaming-rag-config
+                name: stream-sentinel-config
           {{- if .Values.langsmith.enabled }}
           env:
             - name: LANGCHAIN_API_KEY
@@ -63,7 +63,7 @@ spec:
                   name: {{ .Values.langsmith.existingSecret }}
                   key: {{ .Values.langsmith.existingSecretKey }}
                   {{- else }}
-                  name: streaming-rag-secrets
+                  name: stream-sentinel-secrets
                   key: LANGCHAIN_API_KEY
                   {{- end }}
           {{- end }}
@@ -88,13 +88,13 @@ kind: Service
 metadata:
   name: api
   labels:
-    {{- include "streaming-rag.labels" . | nindent 4 }}
+    {{- include "stream-sentinel.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
 spec:
   type: {{ .Values.api.serviceType }}
   selector:
     app.kubernetes.io/component: api
-    {{- include "streaming-rag.selectorLabels" . | nindent 4 }}
+    {{- include "stream-sentinel.selectorLabels" . | nindent 4 }}
   ports:
     - name: http
       port: 8000

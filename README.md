@@ -1,4 +1,4 @@
-# End-to-End Streaming RAG
+﻿# stream-sentinel
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal.svg)](https://fastapi.tiangolo.com/)
@@ -7,13 +7,13 @@
 [![Kafka](https://img.shields.io/badge/Apache%20Kafka-KRaft-red.svg)](https://kafka.apache.org/)
 [![MCP](https://img.shields.io/badge/MCP-FastMCP-purple.svg)](https://modelcontextprotocol.io/)
 
-Cloud-native, event-driven Streaming RAG for real-time log ingestion, vectorization, and intelligent incident analysis — exposed via an agentic API and an MCP server for interoperability with any AI client.
+Cloud-native, event-driven stream-sentinel for real-time log ingestion, vectorization, and intelligent incident analysis â€” exposed via an agentic API and an MCP server for interoperability with any AI client.
 
 ## Overview
 
 Diagnosing incidents in distributed systems means manually trawling through thousands of log lines across multiple services, correlating timestamps, and pattern-matching errors under pressure. This project replaces that workflow with a natural-language interface: you ask *"what caused the payment service to crash in the last hour?"* and an AI agent reasons over your live log data to give a grounded, source-cited answer with event IDs and similarity confidence scores.
 
-The system is built end-to-end: multi-archetype synthetic logs flow from a Kafka stream (with Dead Letter Queue resilience on `system-logs-dlq`) into a vector database in real time, and a LangGraph ReAct agent decides at query time whether to search semantically or query aggregate statistics — then synthesizes a response from real context, not from model memory. The agent is also exposed as an MCP server, making its capabilities available to any MCP-compatible client (Cursor, Claude Desktop, other agents) as a first-class interoperable service.
+The system is built end-to-end: multi-archetype synthetic logs flow from a Kafka stream (with Dead Letter Queue resilience on `system-logs-dlq`) into a vector database in real time, and a LangGraph ReAct agent decides at query time whether to search semantically or query aggregate statistics â€” then synthesizes a response from real context, not from model memory. The agent is also exposed as an MCP server, making its capabilities available to any MCP-compatible client (Cursor, Claude Desktop, other agents) as a first-class interoperable service.
 
 ---
 
@@ -23,33 +23,33 @@ The system is built end-to-end: multi-archetype synthetic logs flow from a Kafka
 ## Architecture
 
 ```
- ┌──────────────────────── Data Pipeline ─────────────────────────┐
- │                                                                │
- │  Producer ──► Kafka ──► Consumer ──► HF Embedder ──► ChromaDB  │
- │  (burst/stream)         │ (retries + DLQ: system-logs-dlq)     │
- └────────────────────────────────────────────┬───────────────────┘
-                                              │
- ┌──────────────────────── Agentic Layer ─────▼────────────────────┐
- │                                                                 │
- │  POST /api/v1/query                                             │
- │         │                                                       │
- │         ▼                                                       │
- │  LangGraph ReAct Agent  (Ollama · llama3.2:3b)                  │
- │         ├── vector_search ──► ChromaDB  (native + score/id)     │
- │         ├── log_stats    ──► ChromaDB  (native)                 │
- │         └── [MCP tools]  ──► MCP Server  (optional, via SSE)    │
- │                                                                 │
- └─────────────────────────────┬───────────────────────────────────┘
-                               │
-            ┌──────────────────▼──────────────────┐
-            │             MCP Server              │
-            │  (src/mcp_server/server.py)         │
-            │  ├── vector_search                  │
-            │  └── log_stats                      │
-            └──────────────────┬──────────────────┘
-                               │  stdio / SSE
-        ┌──────────────────────┼──────────────────────┐
-        ▼                      ▼                      ▼
+ â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Data Pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+ â”‚                                                                â”‚
+ â”‚  Producer â”€â”€â–º Kafka â”€â”€â–º Consumer â”€â”€â–º HF Embedder â”€â”€â–º ChromaDB  â”‚
+ â”‚  (burst/stream)         â”‚ (retries + DLQ: system-logs-dlq)     â”‚
+ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                              â”‚
+ â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Agentic Layer â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+ â”‚                                                                 â”‚
+ â”‚  POST /api/v1/query                                             â”‚
+ â”‚         â”‚                                                       â”‚
+ â”‚         â–¼                                                       â”‚
+ â”‚  LangGraph ReAct Agent  (Ollama Â· llama3.2:3b)                  â”‚
+ â”‚         â”œâ”€â”€ vector_search â”€â”€â–º ChromaDB  (native + score/id)     â”‚
+ â”‚         â”œâ”€â”€ log_stats    â”€â”€â–º ChromaDB  (native)                 â”‚
+ â”‚         â””â”€â”€ [MCP tools]  â”€â”€â–º MCP Server  (optional, via SSE)    â”‚
+ â”‚                                                                 â”‚
+ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                               â”‚
+            â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+            â”‚             MCP Server              â”‚
+            â”‚  (src/mcp_server/server.py)         â”‚
+            â”‚  â”œâ”€â”€ vector_search                  â”‚
+            â”‚  â””â”€â”€ log_stats                      â”‚
+            â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                               â”‚  stdio / SSE
+        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+        â–¼                      â–¼                      â–¼
    Cursor IDE            Claude Desktop          Other agents
 ```
 
@@ -57,7 +57,7 @@ The system is built end-to-end: multi-archetype synthetic logs flow from a Kafka
 
 **Agentic layer:** a LangGraph ReAct agent backed by a local Ollama LLM answers natural-language questions by dynamically choosing between semantic search and statistical queries over the live log store, returning cited `LogSource` records enriched with `event_id` and similarity `score`. As an MCP client it can also load tools from external MCP servers at startup without code changes.
 
-**MCP server:** wraps `vector_search` and `log_stats` in the Model Context Protocol, turning the live log context into an interoperable service that any MCP-compatible client (Cursor, Claude Desktop, other agents) can discover and call — without going through the FastAPI layer. The agent also acts as an MCP client, able to load tools from any external MCP server at startup via `MCP_SERVER_URL`.
+**MCP server:** wraps `vector_search` and `log_stats` in the Model Context Protocol, turning the live log context into an interoperable service that any MCP-compatible client (Cursor, Claude Desktop, other agents) can discover and call â€” without going through the FastAPI layer. The agent also acts as an MCP client, able to load tools from any external MCP server at startup via `MCP_SERVER_URL`.
 
 ---
 
@@ -78,10 +78,10 @@ What you need depends on the path you choose:
 
 | Requirement | Path A: Full Docker Compose | Path B: Local Python hybrid |
 |---|:---:|:---:|
-| **Docker + Docker Compose** (daemon running) | ✅ Required | ✅ Required (Kafka + Chroma only) |
-| **Ollama** with llama3.2:3b pulled | ➖ Not needed (runs in a container; model pulled by ollama-init) | ✅ Required (ollama pull llama3.2:3b) |
-| **Python 3.11+ / 3.12** | ➖ Not needed (built inside the container) | ✅ Required |
-| **Virtual Environment & Dependencies** | ➖ Not needed | ✅ Required (pip install -r requirements.txt) |
+| **Docker + Docker Compose** (daemon running) | âœ… Required | âœ… Required (Kafka + Chroma only) |
+| **Ollama** with llama3.2:3b pulled | âž– Not needed (runs in a container; model pulled by ollama-init) | âœ… Required (ollama pull llama3.2:3b) |
+| **Python 3.11+ / 3.12** | âž– Not needed (built inside the container) | âœ… Required |
+| **Virtual Environment & Dependencies** | âž– Not needed | âœ… Required (pip install -r requirements.txt) |
 
 **Path A therefore needs only Docker with Compose**, plus **enough memory for the container engine:** the model, Kafka, Chroma, and Python services run together, so allocate more than the 2 GB default some Docker/Podman VMs use (4 GB+ recommended, ~8 GB for Kind).
 
@@ -89,11 +89,11 @@ What you need depends on the path you choose:
 
 ---
 
-## 🛠️ Manual Setup Guide
+## ðŸ› ï¸ Manual Setup Guide
 
 If you prefer to configure, build, and run the stack manually step-by-step (Docker Compose, individual Python services, Kafka, Kubernetes/Helm on Kind, or automated test suites):
 
-👉 **[docs/run-and-test-guide.md](docs/run-and-test-guide.md)**
+ðŸ‘‰ **[docs/run-and-test-guide.md](docs/run-and-test-guide.md)**
 
 ---
 
@@ -107,7 +107,7 @@ If you prefer to configure, build, and run the stack manually step-by-step (Dock
 | [docs/architecture-decisions.md](docs/architecture-decisions.md) | Architecture Decision Records (ADRs) |
 | [docs/data-contract.md](docs/data-contract.md) | Pydantic log schema & serialization data contract |
 | [docs/improvements.md](docs/improvements.md) | Production improvements & enterprise backlog |
-| [charts/streaming-rag/README.md](charts/streaming-rag/README.md) | Helm values, Kind build/load/install |
+| [charts/charts/stream-sentinel/README.md](charts/charts/stream-sentinel/README.md) | Helm values, Kind build/load/install |
 
 
 ---

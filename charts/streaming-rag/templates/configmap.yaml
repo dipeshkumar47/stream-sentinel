@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: streaming-rag-config
+  name: stream-sentinel-config
   labels:
-    {{- include "streaming-rag.labels" . | nindent 4 }}
+    {{- include "stream-sentinel.labels" . | nindent 4 }}
 data:
   KAFKA_BOOTSTRAP_SERVERS: "kafka:29092"
   KAFKA_TOPIC_SYSTEM_LOGS: "system-logs"

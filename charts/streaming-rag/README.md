@@ -1,6 +1,6 @@
-# streaming-rag Helm chart
+﻿# stream-sentinel Helm chart
 
-Deploys the full Streaming RAG stack to Kubernetes: Kafka (single-node KRaft), Chroma, Ollama (+ model pull Job), producer, consumer, API, and MCP.
+Deploys the full stream-sentinel stack to Kubernetes: Kafka (single-node KRaft), Chroma, Ollama (+ model pull Job), producer, consumer, API, and MCP.
 
 ## Prerequisites
 
@@ -17,18 +17,18 @@ From the **project root**:
 
 ```bash
 # 1. Cluster (skip if you already have one)
-kind create cluster --name streaming-rag
+kind create cluster --name stream-sentinel
 
 # 2. Build the app image and load it into Kind
-docker build -t streaming-rag:local .
-kind load docker-image streaming-rag:local --name streaming-rag
+docker build -t stream-sentinel:local .
+kind load docker-image stream-sentinel:local --name stream-sentinel
 
 # 3. Install / upgrade
-helm upgrade --install streaming-rag ./charts/streaming-rag \
-  -n streaming-rag --create-namespace
+helm upgrade --install stream-sentinel ./charts/stream-sentinel \
+  -n stream-sentinel --create-namespace
 
-# 4. Watch rollout (ollama-init Job pulls the model — can take several minutes)
-kubectl get pods,jobs -n streaming-rag -w
+# 4. Watch rollout (ollama-init Job pulls the model â€” can take several minutes)
+kubectl get pods,jobs -n stream-sentinel -w
 ```
 
 Or use the helper script:
@@ -40,7 +40,7 @@ Or use the helper script:
 ## Validate
 
 ```bash
-kubectl port-forward -n streaming-rag svc/api 8000:8000
+kubectl port-forward -n stream-sentinel svc/api 8000:8000
 # other terminal
 curl http://localhost:8000/health
 curl -s -X POST http://localhost:8000/api/v1/query \
@@ -48,21 +48,21 @@ curl -s -X POST http://localhost:8000/api/v1/query \
   -d '{"prompt": "what errors occurred recently?", "k": 5}'
 
 # MCP SSE
-kubectl port-forward -n streaming-rag svc/mcp 8001:8001
+kubectl port-forward -n stream-sentinel svc/mcp 8001:8001
 # Cursor MCP url: http://localhost:8001/sse
 ```
 
 Check ingest:
 
 ```bash
-kubectl logs -n streaming-rag deploy/consumer --tail=50
+kubectl logs -n stream-sentinel deploy/consumer --tail=50
 ```
 
 ## Useful values
 
 | Key | Default | Notes |
 | --- | ------- | ----- |
-| `image.repository` / `tag` | `streaming-rag` / `local` | Must match `kind load` |
+| `image.repository` / `tag` | `stream-sentinel` / `local` | Must match `kind load` |
 | `image.pullPolicy` | `IfNotPresent` | Required for locally loaded images |
 | `ollama.model` | `llama3.2:3b` | Pulled by `ollama-init` Job |
 | `ollama.keepAlive` | `30m` | Passed to the API |
@@ -72,8 +72,8 @@ kubectl logs -n streaming-rag deploy/consumer --tail=50
 Example:
 
 ```bash
-helm upgrade --install streaming-rag ./charts/streaming-rag \
-  -n streaming-rag --create-namespace \
+helm upgrade --install stream-sentinel ./charts/stream-sentinel \
+  -n stream-sentinel --create-namespace \
   --set ollama.model=qwen2.5:3b \
   --set langsmith.enabled=true \
   --set-string langsmith.apiKey=lsv2_...
@@ -82,9 +82,9 @@ helm upgrade --install streaming-rag ./charts/streaming-rag \
 ## Uninstall
 
 ```bash
-helm uninstall streaming-rag -n streaming-rag
-kubectl delete namespace streaming-rag
-# optional: kind delete cluster --name streaming-rag
+helm uninstall stream-sentinel -n stream-sentinel
+kubectl delete namespace stream-sentinel
+# optional: kind delete cluster --name stream-sentinel
 ```
 
 PVCs may remain depending on reclaim policy; delete `chroma-data` / `ollama-data` PVCs if you want a clean slate.

@@ -3,19 +3,19 @@ kind: Deployment
 metadata:
   name: consumer
   labels:
-    {{- include "streaming-rag.labels" . | nindent 4 }}
+    {{- include "stream-sentinel.labels" . | nindent 4 }}
     app.kubernetes.io/component: consumer
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/component: consumer
-      {{- include "streaming-rag.selectorLabels" . | nindent 6 }}
+      {{- include "stream-sentinel.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app.kubernetes.io/component: consumer
-        {{- include "streaming-rag.selectorLabels" . | nindent 8 }}
+        {{- include "stream-sentinel.selectorLabels" . | nindent 8 }}
     spec:
       initContainers:
         - name: wait-for-deps
@@ -28,11 +28,11 @@ spec:
               until nc -z chroma 8000; do echo waiting for chroma; sleep 3; done
       containers:
         - name: consumer
-          image: {{ include "streaming-rag.appImage" . }}
+          image: {{ include "stream-sentinel.appImage" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["python", "src/consumer.py"]
           envFrom:
             - configMapRef:
-                name: streaming-rag-config
+                name: stream-sentinel-config
           resources:
             {{- toYaml .Values.consumer.resources | nindent 12 }}

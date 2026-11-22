@@ -1,14 +1,14 @@
-{{/*
+﻿{{/*
 Expand the name of the chart.
 */}}
-{{- define "streaming-rag.name" -}}
+{{- define "stream-sentinel.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "streaming-rag.fullname" -}}
+{{- define "stream-sentinel.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,25 +24,25 @@ Create a default fully qualified app name.
 {{/*
 Common labels
 */}}
-{{- define "streaming-rag.labels" -}}
-helm.sh/chart: {{ include "streaming-rag.chart" . }}
-{{ include "streaming-rag.selectorLabels" . }}
+{{- define "stream-sentinel.labels" -}}
+helm.sh/chart: {{ include "stream-sentinel.chart" . }}
+{{ include "stream-sentinel.selectorLabels" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
-{{- define "streaming-rag.chart" -}}
+{{- define "stream-sentinel.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
-{{- define "streaming-rag.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "streaming-rag.name" . }}
+{{- define "stream-sentinel.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "stream-sentinel.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 App image reference
 */}}
-{{- define "streaming-rag.appImage" -}}
+{{- define "stream-sentinel.appImage" -}}
 {{- printf "%s:%s" .Values.image.repository .Values.image.tag }}
 {{- end }}

@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="Streaming RAG â€” SRE Analyst API",
+    title="stream-sentinel â€” SRE Analyst API",
     description=(
         "An agentic API backed by a LangGraph ReAct agent. "
         "Send a natural-language question about your system logs and receive a "

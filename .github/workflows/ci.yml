@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -61,7 +61,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          tags: streaming-rag:ci
+          tags: stream-sentinel:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
