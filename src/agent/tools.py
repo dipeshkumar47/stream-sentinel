@@ -38,7 +38,7 @@ def vector_search(query: str, k: int = 5) -> str:
     documents: list[str] = results.get("documents", [[]])[0]
     metadatas: list[dict] = results.get("metadatas", [[]])[0]
     ids_list: list[str] = (results.get("ids") or [[]])[0]
-    # ChromaDB returns None for distances when the collection is empty`n    distances_list: list[float] = (results.get("distances") or [[]])[0]
+    distances_list: list[float] = (results.get("distances") or [[]])[0]
 
     if not documents:
         return "No similar log entries found in the vector store."

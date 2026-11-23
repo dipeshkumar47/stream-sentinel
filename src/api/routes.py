@@ -8,10 +8,11 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from agent.tools import vector_search
 from api.schemas import LogSource, QueryRequest, QueryResponse
 
 router = APIRouter()
@@ -25,6 +26,12 @@ _SOURCE_HEADER = re.compile(
     r"(?:\s+\|\s+score=([0-9.]+))?"
     r"\n(.*?)(?=\[\d+\]|\Z)",
     re.DOTALL,
+)
+
+_FALLBACK_SYSTEM = (
+    "You are an expert SRE analyst. Answer the user's question using ONLY "
+    "the log entries provided below. Be concise, specific, and cite log details.\n\n"
+    "Retrieved log entries:\n{context}"
 )
 
 
@@ -47,12 +54,37 @@ def _extract_sources(tool_outputs: list[str]) -> list[LogSource]:
     return sources
 
 
+async def _direct_rag(request: Request, prompt: str, k: int) -> tuple[str, list[LogSource]]:
+    """Direct RAG: vector search + LLM summarisation (no ReAct loop).
+
+    Used when the ReAct agent fails to call tools (small model limitation).
+    Returns (answer, sources).
+    """
+    raw_context = vector_search.invoke({"query": prompt, "k": k})
+    sources = _extract_sources([raw_context])
+
+    from agent.graph import llm
+
+    messages = [
+        SystemMessage(content=_FALLBACK_SYSTEM.format(context=raw_context)),
+        HumanMessage(content=prompt),
+    ]
+    try:
+        resp = await llm.ainvoke(messages)
+        answer = resp.content.strip() if isinstance(resp.content, str) else raw_context
+    except Exception:
+        answer = f"Based on retrieved logs:\n\n{raw_context}"
+    return answer, sources
+
+
 @router.post("/query", response_model=QueryResponse, summary="Query the SRE analyst agent")
 async def query(request: Request, body: QueryRequest) -> QueryResponse:
     """Send a natural-language question to the ReAct agent.
 
     The agent will decide which tools to invoke (vector search and/or log
     statistics) and return a grounded answer with source citations.
+    If the underlying model does not emit structured tool calls, the endpoint
+    automatically falls back to direct vector search + LLM summarisation.
     """
     try:
         result = await request.app.state.agent_graph.ainvoke(
@@ -82,6 +114,12 @@ async def query(request: Request, body: QueryRequest) -> QueryResponse:
         final_answer = "The agent did not produce a final answer."
 
     sources = _extract_sources(tool_outputs)
+
+    # Fallback: model did not call any tool -> run direct RAG.
+    # Small Ollama models (llama3.2:3b) sometimes emit tool-call JSON as plain
+    # text instead of invoking the tool through the LangGraph ToolNode.
+    if not tool_outputs:
+        final_answer, sources = await _direct_rag(request, body.prompt, body.k)
 
     return QueryResponse(answer=final_answer, sources=sources)
 

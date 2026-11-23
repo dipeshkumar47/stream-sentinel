@@ -42,6 +42,5 @@ async def build_agent_graph(extra_tools: list[Any] | None = None):
     return create_react_agent(
         model=llm,
         tools=tools,
-        prompt=SYSTEM_PROMPT,
-        name="sre-analyst",
+        state_modifier=SYSTEM_PROMPT,
     )

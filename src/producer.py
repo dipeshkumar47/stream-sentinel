@@ -200,7 +200,8 @@ def generate_mock_log(
     )
 
 
-# Kafka partition key = service_name ensures per-service chronological ordering.`ndef send_log(
+# Kafka partition key = service_name ensures per-service chronological ordering.
+def send_log(
     log_entry: SystemLog,
     producer: Producer | None = None,
     topic: str = KAFKA_TOPIC_SYSTEM_LOGS,
