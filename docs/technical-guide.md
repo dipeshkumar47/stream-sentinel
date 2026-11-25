@@ -1,4 +1,4 @@
-﻿# stream-sentinel: System Architecture & Technical Implementation Guide
+# stream-sentinel: System Architecture & Technical Implementation Guide
 
 A unified, comprehensive reference detailing the engineering motivations, architectural trade-offs, and implementation specifications of the **End-to-End stream-sentinel** platform.
 

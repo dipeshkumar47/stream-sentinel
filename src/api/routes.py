@@ -110,6 +110,7 @@ async def query(request: Request, body: QueryRequest) -> QueryResponse:
             final_answer = m.content.strip()
             break
 
+    has_agent_answer = bool(final_answer)
     if not final_answer:
         final_answer = "The agent did not produce a final answer."
 
@@ -118,7 +119,7 @@ async def query(request: Request, body: QueryRequest) -> QueryResponse:
     # Fallback: model did not call any tool -> run direct RAG.
     # Small Ollama models (llama3.2:3b) sometimes emit tool-call JSON as plain
     # text instead of invoking the tool through the LangGraph ToolNode.
-    if not tool_outputs:
+    if not tool_outputs and has_agent_answer:
         final_answer, sources = await _direct_rag(request, body.prompt, body.k)
 
     return QueryResponse(answer=final_answer, sources=sources)

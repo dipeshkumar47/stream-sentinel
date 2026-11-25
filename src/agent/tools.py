@@ -1,4 +1,4 @@
-﻿"""LangChain tools available to the ReAct agent."""
+"""LangChain tools available to the ReAct agent."""
 
 from __future__ import annotations
 

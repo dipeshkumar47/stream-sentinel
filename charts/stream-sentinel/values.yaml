@@ -1,4 +1,4 @@
-﻿# Default values for stream-sentinel (Kind / laptop-friendly).
+# Default values for stream-sentinel (Kind / laptop-friendly).
 # Full stack (Kind + Ollama + Kafka + embeddings) wants ~16 GB+ host RAM.
 
 nameOverride: ""

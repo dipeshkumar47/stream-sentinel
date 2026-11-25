@@ -1,4 +1,4 @@
-﻿# Engineering Roadmap & Production Improvements
+# Engineering Roadmap & Production Improvements
 
 This document outlines the detailed technical roadmap designed to transition the project from a functional proof-of-concept into a production-grade, enterprise-ready system. It is structured to demonstrate senior-level software engineering, data streaming scalability, advanced agentic orchestration, and LLMOps evaluationâ€”key dimensions evaluated in AI Engineer and AI Platform roles.
 

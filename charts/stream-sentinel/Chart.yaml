@@ -1,4 +1,4 @@
-﻿apiVersion: v2
+apiVersion: v2
 name: stream-sentinel
 description: stream-sentinel — Kafka, Chroma, Ollama, producer, consumer, API, MCP
 type: application

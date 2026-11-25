@@ -1,4 +1,4 @@
-﻿# Step-by-Step Guide: Build, Run & Test
+# Step-by-Step Guide: Build, Run & Test
 
 A comprehensive, hands-on guide for building the project, running individual modules and services, and testing the API, LangGraph agent, tools, and MCP server.
 

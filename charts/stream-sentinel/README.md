@@ -1,4 +1,4 @@
-﻿# stream-sentinel Helm chart
+# stream-sentinel Helm chart
 
 Deploys the full stream-sentinel stack to Kubernetes: Kafka (single-node KRaft), Chroma, Ollama (+ model pull Job), producer, consumer, API, and MCP.
 

@@ -21,7 +21,7 @@ async def test_build_agent_graph_native_tools(monkeypatch):
     assert result == "compiled_graph"
     _, kwargs = mock_create.call_args
     assert kwargs["tools"] == [vector_search, log_stats]
-    assert kwargs["name"] == "sre-analyst"
+    assert kwargs["state_modifier"] == graph.SYSTEM_PROMPT
 
 
 @pytest.mark.asyncio

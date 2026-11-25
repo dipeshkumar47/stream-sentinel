@@ -1,4 +1,4 @@
-﻿# Data Contract: SystemLog
+# Data Contract: SystemLog
 
 The `SystemLog` model in `src/model/models.py` is the shared contract between the Kafka producer and consumer. Both services import the same Pydantic class so the schema cannot drift between write and read paths.
 

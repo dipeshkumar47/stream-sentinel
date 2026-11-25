@@ -1,4 +1,4 @@
-﻿# Technical References & Documentation
+# Technical References & Documentation
 
 > **Course:** Cluster Computing â€” INT315  
 > **Project:** stream-sentinel: Real-Time Log Streaming and AI-Powered SRE Incident Analysis  

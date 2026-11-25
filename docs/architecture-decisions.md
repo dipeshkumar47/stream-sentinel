@@ -1,4 +1,4 @@
-﻿# Architectural Decision Records (ADR) â€” stream-sentinel
+# Architectural Decision Records (ADR) â€” stream-sentinel
 
 This document details the **Architectural Decision Records (ADRs)** for the stream-sentinel platform. Each record outlines the operational context, the problem statement, the evaluated alternatives, the final decision with engineering rationales, trade-offs, and exact code references.
 

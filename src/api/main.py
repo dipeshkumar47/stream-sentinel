@@ -1,4 +1,4 @@
-﻿"""FastAPI application entry point.
+"""FastAPI application entry point.
 
 Run with:
     uvicorn api.main:app --reload --app-dir src

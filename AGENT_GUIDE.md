@@ -1,4 +1,4 @@
-﻿# AGENT RUNBOOK & ONBOARDING GUIDE: stream-sentinel
+# AGENT RUNBOOK & ONBOARDING GUIDE: stream-sentinel
 
 This document is an operational guide designed for **AI Coding Assistants, LLM Agents, and Technical Navigators** (e.g., Cursor, Claude Code, Copilot, Antigravity, Aider).
 When a user asks to run, test, inspect, or troubleshoot the **stream-sentinel** project, follow the rules, workflows, and diagnostic recipes described here.

@@ -1,4 +1,4 @@
-﻿# Unified local stack â€” Phase 5.2
+# Unified local stack â€” Phase 5.2
 # Usage (from project root):
 #   docker compose up --build
 #
@@ -62,7 +62,7 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     environment:
-      OLLAMA_KEEP_ALIVE: "5m"
+      OLLAMA_KEEP_ALIVE: "15m"
       OLLAMA_NUM_PARALLEL: "1"
       OLLAMA_MAX_LOADED_MODELS: "1"
     healthcheck:
@@ -95,6 +95,8 @@ services:
   producer:
     build: .
     container_name: producer
+    volumes:
+      - ./src:/app/src
     depends_on:
       kafka:
         condition: service_healthy
@@ -107,6 +109,8 @@ services:
   consumer:
     build: .
     container_name: consumer
+    volumes:
+      - ./src:/app/src
     depends_on:
       kafka:
         condition: service_healthy
@@ -124,6 +128,8 @@ services:
   api:
     build: .
     container_name: api
+    volumes:
+      - ./src:/app/src
     ports:
       - "8000:8000"
     depends_on:
@@ -137,7 +143,7 @@ services:
       CHROMA_PORT: "8000"
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
-      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-15m}
       LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-}
       LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY:-}
       LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-stream-sentinel}
@@ -148,6 +154,7 @@ services:
   mcp:
     build: .
     container_name: mcp
+    profiles: ["mcp"]
     ports:
       - "8001:8001"
     depends_on:

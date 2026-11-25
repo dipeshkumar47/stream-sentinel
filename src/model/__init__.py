@@ -1,3 +1,3 @@
-﻿from model.models import LogLevel, SystemLog
+from model.models import LogLevel, SystemLog
 
 __all__ = ["LogLevel", "SystemLog"]
